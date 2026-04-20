@@ -1,0 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: clip;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: #f5f5f5;
+  min-height: 100vh;
+  color: #404040;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+input::placeholder {
+  color: #a1a1a1;
+}
+
+table { color: #404040 !important; }
+th { color: #404040 !important; font-weight: 500; }
+td { color: #404040 !important; }
+table a { color: #404040 !important; text-decoration: none; }
+
+/* Gauge draw animation */
+@keyframes gauge-fill {
+  from { stroke-dashoffset: 188.5; }
+  to   { stroke-dashoffset: var(--gauge-offset, 0); }
+}
+
+.gauge-arc {
+  stroke-dasharray: 188.5 188.5;
+  stroke-dashoffset: var(--gauge-offset, 0);
+  animation: gauge-fill 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
