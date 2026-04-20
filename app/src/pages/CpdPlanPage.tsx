@@ -68,7 +68,7 @@ export default function CpdPlanPage() {
 
   return (
     <div>
-      <Navbar breadcrumb={[{ label: 'Dashboard', href: '#' }, { label: 'CPD Plan' }]} />
+      <Navbar breadcrumb={[{ label: 'Dashboard', href: '#' }, { label: 'Settings', href: '/settings' }, { label: 'CPD Plan' }]} />
       <div className="w-full max-w-[1245px] mx-auto flex items-start">
         <PracticeReportingSidebar />
 

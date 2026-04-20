@@ -2,10 +2,10 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import PracticeReportingPage from './pages/PracticeReportingPage'
 import StudentDetailPage from './pages/StudentDetailPage'
 import SettingsPage from './pages/SettingsPage'
-import CpdPlanPage from './pages/CpdPlanPage'
 import AccountPage from './pages/AccountPage'
 import ManualUploadPage from './pages/ManualUploadPage'
 import BulkUploadPage from './pages/BulkUploadPage'
+import CpdPlanPage from './pages/CpdPlanPage'
 
 export default function App() {
   return (

@@ -6,11 +6,13 @@ export default function PracticeReportingSidebar() {
 
   const isAccount = pathname === '/account'
   const isReporting = pathname === '/practice-reporting'
-  const isSettings = pathname === '/settings'
+  const isAddPeople = ['/settings', '/manual-upload', '/bulk-upload'].includes(pathname)
   const isCpd = pathname === '/cpd-plan'
-  const isPracticeReportingSection = isReporting || isSettings || isCpd
+  const isSettingsSection = isAddPeople || isCpd
+  const isPracticeReportingSection = isReporting || isSettingsSection
 
   const [expanded, setExpanded] = useState(isPracticeReportingSection)
+  const [settingsExpanded, setSettingsExpanded] = useState(isSettingsSection)
 
   return (
     <aside className="sticky top-[52px] h-[calc(100vh-52px)] overflow-y-auto w-[280px] shrink-0 bg-[#f5f5f5] flex flex-col gap-2.5 p-3">
@@ -92,18 +94,26 @@ export default function PracticeReportingSidebar() {
           >
             Reporting
           </Link>
-          <Link
-            to="/settings"
-            className={`py-1.5 text-[13px] transition-colors ${isSettings ? 'text-[#1182e3] font-medium' : 'text-[#404040] hover:text-[#1182e3]'}`}
+          <button
+            onClick={() => setSettingsExpanded(v => !v)}
+            className={`py-1.5 text-[13px] text-left flex items-center justify-between transition-colors ${isSettingsSection ? 'text-[#1182e3] font-medium' : 'text-[#404040] hover:text-[#1182e3]'}`}
           >
             Settings
-          </Link>
-          <Link
-            to="/cpd-plan"
-            className={`py-1.5 text-[13px] transition-colors ${isCpd ? 'text-[#1182e3] font-medium' : 'text-[#404040] hover:text-[#1182e3]'}`}
-          >
-            CPD Plan
-          </Link>
+            <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className={`transition-transform mr-1 ${settingsExpanded ? 'rotate-180' : ''}`}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {settingsExpanded && <div className="ml-4 flex flex-col gap-0.5">
+            <Link
+              to="/settings"
+              className={`py-1.5 text-[13px] transition-colors ${isAddPeople ? 'text-[#1182e3] font-medium' : 'text-[#404040] hover:text-[#1182e3]'}`}
+            >
+              Add People
+            </Link>
+            <span className="py-1.5 text-[13px] text-[#9ca3af] cursor-not-allowed">
+              CPD Plan
+            </span>
+          </div>}
         </div>}
       </div>
     </aside>
