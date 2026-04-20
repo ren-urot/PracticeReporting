@@ -7,10 +7,10 @@ interface NavbarProps {
 export default function Navbar({ breadcrumb = [] }: NavbarProps) {
   return (
     <header className="sticky top-0 z-50 h-[52px] bg-white border-b border-[#e5e5e5] w-full">
-      <div className="w-full max-w-[1245px] mx-auto h-full flex items-center justify-between px-4">
+      <div className="w-full max-w-[1245px] mx-auto h-full flex items-center justify-between pr-4">
         <div className="flex items-center gap-4 h-full">
-          <div className="w-[120px] h-full flex items-center justify-start shrink-0 px-3">
-            <img src="/img/logo.png" alt="CPDcheck" className="object-contain max-h-full" />
+          <div className="h-full flex items-center justify-start shrink-0 pl-3">
+            <img src={`${import.meta.env.BASE_URL}img/logo.png`} alt="CPDcheck" width={102} height={19} />
           </div>
           <div className="h-4 w-px bg-[#e5e5e5] shrink-0" />
           <nav className="flex items-center gap-[10px]">

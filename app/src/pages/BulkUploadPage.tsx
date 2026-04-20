@@ -6,18 +6,6 @@ import { Button } from '@/components/ui/button'
 
 type Recipient = { id: number; name: string; email: string }
 
-const SAMPLE_RECIPIENTS: Recipient[] = [
-  { id: 1,  name: 'Albert Thomas',  email: 'albert.thomas@gmail.com' },
-  { id: 2,  name: 'Jonathan Smith', email: 'jonathan.smith@gmail.com' },
-  { id: 3,  name: 'Christine Marks',email: 'christine.marks@gmail.com' },
-  { id: 4,  name: 'Jesse Jackson',  email: 'jesse.jackson@gmail.com' },
-  { id: 5,  name: 'Susan Mann',     email: 'susan.mann@gmail.com' },
-  { id: 6,  name: 'Jonah Rocks',    email: 'jonah.rocks@gmail.com' },
-  { id: 7,  name: 'Marky Jacks',    email: 'marky.jacks@gmail.com' },
-  { id: 8,  name: 'Anthony Carr',   email: 'anthony.carr@gmail.com' },
-  { id: 9,  name: 'Mark Smith',     email: 'mark.smith@gmail.com' },
-  { id: 10, name: 'Sarah Marks',    email: 'sarah.marks@gmail.com' },
-]
 
 const PAGE_SIZE = 5
 

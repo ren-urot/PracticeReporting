@@ -6,8 +6,6 @@ import { Button } from '@/components/ui/button'
 
 // ── Gauge ─────────────────────────────────────────────────────────────────
 const CIRC = parseFloat((2 * Math.PI * 30).toFixed(1)) // 188.5
-// 9 evenly-distributed dashes: 12px dash, gap = CIRC/9 - 12 = 8.94
-const DASH_EVEN = `12 ${(CIRC / 9 - 12).toFixed(2)}`
 
 interface GaugeProps {
   value: string
