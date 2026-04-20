@@ -7,10 +7,10 @@ const ROLES = ['Provider', 'Admin', 'Manager', 'Advisor']
 
 export default function AccountPage() {
   const [editing, setEditing] = useState(false)
-  const [firstName, setFirstName] = useState('Renato')
-  const [lastName, setLastName] = useState('Urot')
+  const [firstName, setFirstName] = useState('Jack')
+  const [lastName, setLastName] = useState('Black')
   const [role, setRole] = useState('')
-  const [email] = useState('ren@ensombl.com')
+  const [email] = useState('jackblack@gmail.com')
 
   const initials = `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase()
 
