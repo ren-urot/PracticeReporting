@@ -80,8 +80,8 @@ export default function ManualUploadPage() {
 
               {/* Input row */}
               <div className="flex gap-4 mb-5" style={{ alignItems: 'flex-end' }}>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[14px] font-medium text-[#404040]" style={{ height: 20, display: 'block' }}>Full Name</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, height: 61, flexShrink: 0 }}>
+                  <label className="text-[14px] font-medium text-[#404040]" style={{ height: 20, lineHeight: '20px', flexShrink: 0 }}>Full Name</label>
                   <input
                     value={fullName}
                     onChange={e => setFullName(e.target.value)}
@@ -89,12 +89,12 @@ export default function ManualUploadPage() {
                     placeholder="Full Name on Certificate"
                     autoComplete="off"
                     data-form-type="other"
-                    style={{ height: 35, width: 235 }}
-                    className="px-[9px] border border-[#cacaca] rounded-[4px] text-[14px] text-[#404040] placeholder:text-[#9c9898] focus:outline-none focus:border-[#1182e3] bg-white block"
+                    style={{ height: 35, width: 235, flexShrink: 0 }}
+                    className="px-[9px] border border-[#cacaca] rounded-[4px] text-[14px] text-[#404040] placeholder:text-[#9c9898] focus:outline-none focus:border-[#1182e3] bg-white"
                   />
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[14px] font-medium text-[#404040]" style={{ height: 20, display: 'block' }}>Email</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, height: 61, flexShrink: 0 }}>
+                  <label className="text-[14px] font-medium text-[#404040]" style={{ height: 20, lineHeight: '20px', flexShrink: 0 }}>Email</label>
                   <input
                     value={email}
                     onChange={e => setEmail(e.target.value)}
@@ -102,11 +102,11 @@ export default function ManualUploadPage() {
                     placeholder="Email here"
                     autoComplete="off"
                     data-form-type="other"
-                    style={{ height: 35, width: 235 }}
-                    className="px-[9px] border border-[#cacaca] rounded-[4px] text-[14px] text-[#404040] placeholder:text-[#9c9898] focus:outline-none focus:border-[#1182e3] bg-white block"
+                    style={{ height: 35, width: 235, flexShrink: 0 }}
+                    className="px-[9px] border border-[#cacaca] rounded-[4px] text-[14px] text-[#404040] placeholder:text-[#9c9898] focus:outline-none focus:border-[#1182e3] bg-white"
                   />
                 </div>
-                <Button variant="default" size="default" style={{ height: 35 }} className="rounded-[8px]" onClick={addRecipient}>Add</Button>
+                <Button variant="default" size="default" style={{ height: 35, flexShrink: 0 }} className="rounded-[8px]" onClick={addRecipient}>Add</Button>
               </div>
 
               {/* Invited Recipients */}
