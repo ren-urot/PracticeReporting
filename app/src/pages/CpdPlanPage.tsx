@@ -29,7 +29,7 @@ export default function CpdPlanPage() {
   const [members, setMembers]         = useState<Member[]>(() => loadMembers())
   const [allPoints, setAllPoints]     = useState<AllPoints>(() => loadAllPoints())
 
-  const [sortKey, setSortKey]   = useState<string>('name')
+  const [sortKey, setSortKey]   = useState<string>('_default')
   const [sortDir, setSortDir]   = useState<'asc' | 'desc'>('asc')
   const [page, setPage]         = useState(1)
   const PAGE_SIZE = 8
@@ -46,6 +46,7 @@ export default function CpdPlanPage() {
   }
 
   const sortedMembers = useMemo(() => {
+    if (sortKey === '_default') return [...members].reverse()
     return [...members].sort((a, b) => {
       const ptsA = allPoints[a.name] ?? {}
       const ptsB = allPoints[b.name] ?? {}

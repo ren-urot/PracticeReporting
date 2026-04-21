@@ -79,31 +79,34 @@ export default function ManualUploadPage() {
             <div className="bg-[#fafafa] rounded-[14px] p-6">
 
               {/* Input row */}
-              <div className="flex items-start gap-4 mb-5">
+              <div className="flex gap-4 mb-5" style={{ alignItems: 'flex-end' }}>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[14px] font-medium text-[#404040]">Full Name</label>
+                  <label className="text-[14px] font-medium text-[#404040]" style={{ height: 20, display: 'block' }}>Full Name</label>
                   <input
                     value={fullName}
                     onChange={e => setFullName(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="Full Name on Certificate"
-                    className="h-[35px] w-[235px] px-[9px] border border-[#cacaca] rounded-[4px] text-[14px] text-[#404040] placeholder:text-[#9c9898] focus:outline-none focus:border-[#1182e3] bg-white"
+                    autoComplete="off"
+                    data-form-type="other"
+                    style={{ height: 35, width: 235 }}
+                    className="px-[9px] border border-[#cacaca] rounded-[4px] text-[14px] text-[#404040] placeholder:text-[#9c9898] focus:outline-none focus:border-[#1182e3] bg-white block"
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[14px] font-medium text-[#404040]">Email</label>
+                  <label className="text-[14px] font-medium text-[#404040]" style={{ height: 20, display: 'block' }}>Email</label>
                   <input
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="Email here"
-                    className="h-[35px] w-[235px] px-[9px] border border-[#cacaca] rounded-[4px] text-[14px] text-[#404040] placeholder:text-[#9c9898] focus:outline-none focus:border-[#1182e3] bg-white"
+                    autoComplete="off"
+                    data-form-type="other"
+                    style={{ height: 35, width: 235 }}
+                    className="px-[9px] border border-[#cacaca] rounded-[4px] text-[14px] text-[#404040] placeholder:text-[#9c9898] focus:outline-none focus:border-[#1182e3] bg-white block"
                   />
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-[14px] font-medium text-transparent select-none">.</span>
-                  <Button variant="default" size="default" className="h-[35px] rounded-[8px]" onClick={addRecipient}>Add</Button>
-                </div>
+                <Button variant="default" size="default" style={{ height: 35 }} className="rounded-[8px]" onClick={addRecipient}>Add</Button>
               </div>
 
               {/* Invited Recipients */}
