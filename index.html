@@ -14,7 +14,7 @@
           }, {});
           window.history.replaceState(
             null, null,
-            l.pathname + (decoded.p || '') + (decoded.q ? '?' + decoded.q : '') + l.hash
+            l.pathname.replace(/\/$/, '') + (decoded.p || '') + (decoded.q ? '?' + decoded.q : '') + l.hash
           );
         }
       }(window.location));
