@@ -79,7 +79,7 @@ export default function ManualUploadPage() {
             <div className="bg-[#fafafa] rounded-[14px] p-6">
 
               {/* Input row */}
-              <div className="flex items-end gap-4 mb-5">
+              <div className="flex items-start gap-4 mb-5">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[14px] font-medium text-[#404040]">Full Name</label>
                   <input
@@ -100,7 +100,10 @@ export default function ManualUploadPage() {
                     className="h-[35px] w-[235px] px-[9px] border border-[#cacaca] rounded-[4px] text-[14px] text-[#404040] placeholder:text-[#9c9898] focus:outline-none focus:border-[#1182e3] bg-white"
                   />
                 </div>
-                <Button variant="default" size="default" className="h-[35px] rounded-[8px]" onClick={addRecipient}>Add</Button>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[14px] font-medium text-transparent select-none">.</span>
+                  <Button variant="default" size="default" className="h-[35px] rounded-[8px]" onClick={addRecipient}>Add</Button>
+                </div>
               </div>
 
               {/* Invited Recipients */}
