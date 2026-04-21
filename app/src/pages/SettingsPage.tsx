@@ -27,7 +27,7 @@ export default function SettingsPage() {
 
         <main className="flex-1 min-w-0 p-4">
           <div className="bg-white rounded-[10px] pt-[13px] pb-[29px] px-[31px]">
-            <h1 className="text-[18px] font-semibold text-[#0a0a0a] mb-6">Send CPD Certificate</h1>
+            <h1 className="text-[18px] font-semibold text-[#0a0a0a] mb-6">Add People</h1>
 
             <div className="flex flex-col gap-3">
               {OPTION_CARDS.map(card => (

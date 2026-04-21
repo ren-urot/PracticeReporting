@@ -156,7 +156,7 @@ const iconMap = { headphones: HeadphonesIcon, book: BookIcon, file: FileIcon }
 function CourseCard({ title, description, categories, topics, points, icon }: CourseCardProps) {
   const Icon = iconMap[icon]
   return (
-    <div className="relative rounded-[12px] shadow-sm overflow-hidden">
+    <div className="relative rounded-[12px] overflow-hidden">
       <div className="absolute left-0 top-0 bottom-0 w-14 bg-[#1a2744] rounded-tl-[12px] rounded-bl-[12px] flex items-center justify-center z-10">
         <Icon />
       </div>
@@ -238,6 +238,46 @@ const courses: CourseCardProps[] = [
   },
 ]
 
+// ── CSV Export ────────────────────────────────────────────────────────────
+function downloadStudentCSV() {
+  const rows: string[][] = []
+
+  rows.push(['Student Report: Albert Thomas'])
+  rows.push([])
+
+  rows.push(['ANNUAL COMPLIANCE PROGRESS'])
+  rows.push(['CPD Points Earned', 'CPD Points Required', 'Progress'])
+  rows.push(['26.5', '40', '66%'])
+  rows.push([])
+
+  rows.push(['CATEGORY BREAKDOWN'])
+  rows.push(['Category', 'Progress', 'Status'])
+  gauges.forEach(g => rows.push([g.label, g.value, g.sublabel]))
+  rows.push([])
+
+  rows.push(['SUBJECTS'])
+  rows.push(['Subject', 'Points'])
+  subjects.forEach(s => rows.push([s.label, s.value ?? '–']))
+  rows.push([])
+
+  rows.push(['COMPLETED EDUCATION'])
+  rows.push(['Title', 'Description', 'CPD Points', 'Categories'])
+  courses.forEach(c => rows.push([
+    c.title,
+    c.description,
+    String(c.points),
+    c.categories.filter(cat => cat.active).map(cat => cat.label).join('; '),
+  ]))
+
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n')
+  const a = document.createElement('a')
+  a.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv))
+  a.setAttribute('download', 'albert-thomas-report.csv')
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────
 export default function StudentDetailPage() {
   return (
@@ -263,9 +303,9 @@ export default function StudentDetailPage() {
               </svg>
               Import CPD Points
             </Button>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 cursor-pointer" onClick={downloadStudentCSV}>
               <span className="text-[13px] font-semibold text-[#0a0a0a]">Export Entire Report to CSV</span>
-              <Button variant="blue" size="icon-lg">
+              <Button variant="blue" size="icon-lg" onClick={downloadStudentCSV}>
                 <svg width="16" height="16" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><path d="M12 18v-6M9 15l3 3 3-3" />
                 </svg>

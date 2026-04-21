@@ -6,6 +6,7 @@ import AccountPage from './pages/AccountPage'
 import ManualUploadPage from './pages/ManualUploadPage'
 import BulkUploadPage from './pages/BulkUploadPage'
 import CpdPlanPage from './pages/CpdPlanPage'
+import CpdPlanEditPage from './pages/CpdPlanEditPage'
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
       <Route path="/manual-upload" element={<ManualUploadPage />} />
       <Route path="/bulk-upload" element={<BulkUploadPage />} />
       <Route path="/cpd-plan" element={<CpdPlanPage />} />
+      <Route path="/cpd-plan/edit/:memberIndex" element={<CpdPlanEditPage />} />
     </Routes>
   )
 }

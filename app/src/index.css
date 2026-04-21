@@ -29,6 +29,16 @@ input::placeholder {
   color: #a1a1a1;
 }
 
+/* Hide number input spin buttons */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
 table { color: #404040 !important; }
 th { color: #404040 !important; font-weight: 500; }
 td { color: #404040 !important; }

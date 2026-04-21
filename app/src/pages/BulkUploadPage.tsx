@@ -239,13 +239,13 @@ export default function BulkUploadPage() {
               </div>
             )}
 
-            {/* Send Test Email */}
-            <div className="flex justify-end mt-6">
+            {/* Send button — only after upload */}
+            {uploaded && <div className="flex justify-end mt-6">
               <Button
                 variant="default"
                 size="default"
                 className={`rounded-[8px] min-w-[148px] transition-colors ${sendState === 'sent' ? 'bg-green-600 hover:bg-green-600' : ''}`}
-                disabled={!uploaded || sendState !== 'idle'}
+                disabled={sendState !== 'idle'}
                 onClick={handleSend}
               >
                 {sendState === 'sending' && (
@@ -259,9 +259,9 @@ export default function BulkUploadPage() {
                     <path d="M20 6L9 17l-5-5" />
                   </svg>
                 )}
-                {sendState === 'idle' ? 'Send Test Email' : sendState === 'sending' ? 'Sending…' : 'Sent!'}
+                {sendState === 'idle' ? 'Send' : sendState === 'sending' ? 'Sending…' : 'Sent!'}
               </Button>
-            </div>
+            </div>}
 
           </div>
         </main>

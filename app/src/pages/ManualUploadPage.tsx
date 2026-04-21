@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Navbar from '@/components/layout/Navbar'
 import PracticeReportingSidebar from '@/components/layout/PracticeReportingSidebar'
 import { Button } from '@/components/ui/button'
+import { loadMembers, saveMembers } from '@/lib/cpdData'
 
 type Recipient = { id: number; name: string; email: string }
 
@@ -12,7 +13,8 @@ export default function ManualUploadPage() {
   const [fullName, setFullName]     = useState('')
   const [email, setEmail]           = useState('')
   const [recipients, setRecipients] = useState<Recipient[]>([])
-  const [sendState, setSendState]   = useState<'idle' | 'sending' | 'sent'>('idle')
+  const [sendState, setSendState]   = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [alert, setAlert]           = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   function addRecipient() {
     if (!fullName.trim() || !email.trim()) return
@@ -32,10 +34,23 @@ export default function ManualUploadPage() {
   function handleSendTest() {
     if (recipients.length === 0 || sendState !== 'idle') return
     setSendState('sending')
+    setAlert(null)
     setTimeout(() => {
-      setSendState('sent')
-      setTimeout(() => setSendState('idle'), 3000)
-    }, 1200)
+      try {
+        const existing = loadMembers()
+        const newMembers = recipients
+          .filter(r => !existing.some(m => m.email === r.email))
+          .map(r => ({ name: r.name, email: r.email }))
+        saveMembers([...existing, ...newMembers])
+        setSendState('sent')
+        setAlert({ type: 'success', message: `${newMembers.length} member${newMembers.length !== 1 ? 's' : ''} added successfully!` })
+        setRecipients([])
+      } catch {
+        setSendState('error')
+        setAlert({ type: 'error', message: 'Failed to add members. Please try again.' })
+      }
+      setTimeout(() => { setSendState('idle'); setAlert(null) }, 4000)
+    }, 800)
   }
 
   return (
@@ -110,19 +125,31 @@ export default function ManualUploadPage() {
                   ))}
                 </div>
               </div>
+              {/* Alert */}
+              {alert && (
+                <div className={`flex items-center gap-2 mt-3 px-4 py-3 rounded-[8px] text-[13px] font-medium ${
+                  alert.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                  {alert.type === 'success' ? (
+                    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                  )}
+                  {alert.message}
+                </div>
+              )}
 
-              {/* Count + Send button */}
-              <div className="flex items-center justify-between mt-3">
-                <p className="text-[12px] font-light text-[#404040]">
-                  {recipients.length > 0
-                    ? `Send CPD certificate to these ${recipients.length} recipient${recipients.length !== 1 ? 's' : ''}.`
-                    : 'Add recipients above to send a test email.'}
-                </p>
+              {/* Send button */}
+              <div className="flex items-center justify-end mt-3">
                 <Button
                   variant="default"
                   size="default"
-                  className={`rounded-[8px] min-w-[148px] transition-colors ${sendState === 'sent' ? 'bg-green-600 hover:bg-green-600' : ''}`}
-                  disabled={recipients.length === 0 || sendState !== 'idle'}
+                  className={`rounded-[8px] min-w-[148px] transition-colors ${sendState === 'sent' ? 'bg-green-600 hover:bg-green-600' : sendState === 'error' ? 'bg-red-600 hover:bg-red-600' : ''}`}
+                  disabled={recipients.length === 0 || (sendState !== 'idle' && sendState !== 'error')}
                   onClick={handleSendTest}
                 >
                   {sendState === 'sending' && (
@@ -136,7 +163,7 @@ export default function ManualUploadPage() {
                       <path d="M20 6L9 17l-5-5" />
                     </svg>
                   )}
-                  {sendState === 'idle' ? 'Send Test Email' : sendState === 'sending' ? 'Sending…' : 'Sent!'}
+                  {sendState === 'idle' || sendState === 'error' ? 'Send' : sendState === 'sending' ? 'Sending…' : 'Sent!'}
                 </Button>
               </div>
 

@@ -7,7 +7,7 @@ export default function PracticeReportingSidebar() {
   const isAccount = pathname === '/account'
   const isReporting = pathname === '/practice-reporting'
   const isAddPeople = ['/settings', '/manual-upload', '/bulk-upload'].includes(pathname)
-  const isCpd = pathname === '/cpd-plan'
+  const isCpd = pathname === '/cpd-plan' || pathname.startsWith('/cpd-plan/')
   const isSettingsSection = isAddPeople || isCpd
   const isPracticeReportingSection = isReporting || isSettingsSection
 
@@ -110,9 +110,12 @@ export default function PracticeReportingSidebar() {
             >
               Add People
             </Link>
-            <span className="py-1.5 text-[13px] text-[#9ca3af] cursor-not-allowed">
+            <Link
+              to="/cpd-plan"
+              className={`py-1.5 text-[13px] transition-colors ${isCpd ? 'text-[#1182e3] font-medium' : 'text-[#404040] hover:text-[#1182e3]'}`}
+            >
               CPD Plan
-            </span>
+            </Link>
           </div>}
         </div>}
       </div>
