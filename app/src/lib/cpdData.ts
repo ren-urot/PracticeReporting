@@ -123,3 +123,80 @@ export function topicTotal(points: MemberPoints, topic: typeof CPD_TOPICS[0]) {
 export function grandTotal(points: MemberPoints) {
   return CPD_TOPICS.reduce((sum, t) => sum + topicTotal(points, t), 0)
 }
+
+export const CPD_KNOWLEDGE_AREAS = [
+  { area: 'Professionalism & Ethics',         subs: ['Skills', 'Practice management', 'General knowledge'] },
+  { area: 'Client Care & Practice',           subs: ['Aged care', 'Social Security', 'Estate planning'] },
+  { area: 'Technical Competence',             subs: ['Super', 'Derivatives', 'Financial planning', 'Retirement income streams', 'Self Managed Super Funds', 'Retirement', 'Securities', 'Managed investments', 'Fixed Interest', 'Margin lending', 'Life Insurance'] },
+  { area: 'Regulatory & Consumer Protection', subs: ['Compliance', 'Responsible Manager'] },
+  { area: 'General',                          subs: [] },
+  { area: 'Tax Advice',                       subs: ['Taxation'] },
+]
+
+const DEFAULT_KA_POINTS: Record<string, number> = {
+  'Skills': 3, 'Practice management': 3, 'General knowledge': 3,
+  'Aged care': 2, 'Social Security': 1, 'Estate planning': 2,
+  'Super': 1, 'Derivatives': 0, 'Financial planning': 1,
+  'Retirement income streams': 1, 'Self Managed Super Funds': 1, 'Retirement': 0,
+  'Securities': 1, 'Managed investments': 1, 'Fixed Interest': 0,
+  'Margin lending': 0, 'Life Insurance': 0,
+  'Compliance': 3, 'Responsible Manager': 2,
+  'Taxation': 5,
+}
+
+export function createDefaultKAPoints(): MemberPoints {
+  const map: MemberPoints = {}
+  CPD_KNOWLEDGE_AREAS.forEach(t => t.subs.forEach(s => { map[s] = DEFAULT_KA_POINTS[s] ?? 0 }))
+  return map
+}
+
+export function loadAllKAPoints(): AllPoints {
+  const members = loadMembers()
+  try {
+    const raw = localStorage.getItem('cpd-ka-points')
+    if (raw) {
+      const stored: AllPoints = JSON.parse(raw)
+      const defaults = createDefaultKAPoints()
+      members.forEach(m => { if (!stored[m.name]) stored[m.name] = { ...defaults } })
+      return stored
+    }
+  } catch {}
+  return Object.fromEntries(members.map(m => [m.name, createDefaultKAPoints()]))
+}
+
+export function saveAllKAPoints(points: AllPoints) {
+  localStorage.setItem('cpd-ka-points', JSON.stringify(points))
+}
+
+export function kaTopicTotal(points: MemberPoints, topic: typeof CPD_KNOWLEDGE_AREAS[0]) {
+  return topic.subs.reduce((sum, s) => sum + (points[s] || 0), 0)
+}
+
+export function kaGrandTotal(points: MemberPoints) {
+  return CPD_KNOWLEDGE_AREAS.reduce((sum, t) => sum + kaTopicTotal(points, t), 0)
+}
+
+export type TopicConfig = { govtMandated: number; minPerYear: number; enabled: boolean }
+export type AllTopicConfig = Record<string, TopicConfig>
+
+export const DEFAULT_TOPIC_CONFIG: AllTopicConfig = {
+  'Professionalism & Ethics':        { govtMandated: 9, minPerYear: 9, enabled: true  },
+  'Client Care & Practice':          { govtMandated: 5, minPerYear: 5, enabled: true  },
+  'Technical Competence':            { govtMandated: 5, minPerYear: 5, enabled: true  },
+  'Regulatory & Consumer Protection':{ govtMandated: 5, minPerYear: 5, enabled: true  },
+  'General':                         { govtMandated: 0, minPerYear: 0, enabled: true  },
+  'Tax Advice':                      { govtMandated: 5, minPerYear: 5, enabled: true  },
+}
+
+export function loadTopicConfig(): AllTopicConfig {
+  try {
+    const raw = localStorage.getItem('cpd-topic-config-v2')
+    if (raw) {
+      const stored = JSON.parse(raw)
+      return Object.fromEntries(
+        CPD_TOPICS.map(t => [t.area, { ...DEFAULT_TOPIC_CONFIG[t.area], ...(stored[t.area] ?? {}) }])
+      )
+    }
+  } catch {}
+  return { ...DEFAULT_TOPIC_CONFIG }
+}

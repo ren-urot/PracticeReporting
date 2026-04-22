@@ -4,40 +4,79 @@ import Navbar from '@/components/layout/Navbar'
 import PracticeReportingSidebar from '@/components/layout/PracticeReportingSidebar'
 
 import {
-  CPD_TOPICS,
-  loadAllPoints, topicTotal, grandTotal,
+  CPD_TOPICS, CPD_KNOWLEDGE_AREAS,
+  loadAllKAPoints, kaTopicTotal, kaGrandTotal,
   loadMembers,
   REQUIRED_QUARTERLY_POINTS, REQUIRED_HALFYEARLY_POINTS, REQUIRED_YEARLY_POINTS,
-  type AllPoints, type Member,
+  loadTopicConfig, DEFAULT_TOPIC_CONFIG,
+  type AllPoints, type Member, type AllTopicConfig,
 } from '@/lib/cpdData'
 
-type TopicConfig = { govtMandated: number; minPerYear: number; enabled: boolean }
-type AllTopicConfig = Record<string, TopicConfig>
+const SUB_TOPICS = CPD_KNOWLEDGE_AREAS.flatMap(t => t.subs)
 
-const DEFAULT_TOPIC_CONFIG: AllTopicConfig = {
-  'Professionalism & Ethics':        { govtMandated: 9, minPerYear: 9, enabled: true  },
-  'Client Care & Practice':          { govtMandated: 5, minPerYear: 5, enabled: true  },
-  'Technical Competence':            { govtMandated: 5, minPerYear: 5, enabled: true  },
-  'Regulatory & Consumer Protection':{ govtMandated: 5, minPerYear: 5, enabled: true  },
-  'General':                         { govtMandated: 0, minPerYear: 0, enabled: true  },
-  'Tax Advice':                      { govtMandated: 5, minPerYear: 5, enabled: true  },
+const AREA_COLORS: Record<string, string> = {
+  'Professionalism & Ethics':        '#bfdbfe',
+  'Client Care & Practice':          '#bbf7d0',
+  'Technical Competence':            '#fed7aa',
+  'Regulatory & Consumer Protection':'#e9d5ff',
+  'Tax Advice':                      '#fbcfe8',
+}
+const SUBTOPIC_BG: Record<string, string> = {}
+CPD_KNOWLEDGE_AREAS.forEach(t => t.subs.forEach(s => { SUBTOPIC_BG[s] = AREA_COLORS[t.area] ?? '#f6f6f6' }))
+
+type SubTopicConfig = Record<string, { govtMandated: number; minPerYear: number }>
+
+const DEFAULT_SUBTOPIC_CONFIG: SubTopicConfig = {
+  // Professionalism & Ethics (9 pts)
+  'Skills':                     { govtMandated: 3, minPerYear: 3 },
+  'Practice management':        { govtMandated: 3, minPerYear: 3 },
+  'General knowledge':          { govtMandated: 3, minPerYear: 3 },
+  // Client Care & Practice (5 pts)
+  'Aged care':                  { govtMandated: 2, minPerYear: 2 },
+  'Social Security':            { govtMandated: 1, minPerYear: 1 },
+  'Estate planning':            { govtMandated: 2, minPerYear: 2 },
+  // Technical Competence (5 pts)
+  'Super':                      { govtMandated: 1, minPerYear: 1 },
+  'Derivatives':                { govtMandated: 0, minPerYear: 0 },
+  'Financial planning':         { govtMandated: 1, minPerYear: 1 },
+  'Retirement income streams':  { govtMandated: 1, minPerYear: 1 },
+  'Self Managed Super Funds':   { govtMandated: 1, minPerYear: 1 },
+  'Retirement':                 { govtMandated: 0, minPerYear: 0 },
+  'Securities':                 { govtMandated: 1, minPerYear: 1 },
+  'Managed investments':        { govtMandated: 0, minPerYear: 0 },
+  'Fixed Interest':             { govtMandated: 0, minPerYear: 0 },
+  'Margin lending':             { govtMandated: 0, minPerYear: 0 },
+  'Life Insurance':             { govtMandated: 0, minPerYear: 0 },
+  // Regulatory & Consumer Protection (5 pts)
+  'Compliance':                 { govtMandated: 3, minPerYear: 3 },
+  'Responsible Manager':        { govtMandated: 2, minPerYear: 2 },
+  // Tax Advice (5 pts)
+  'Taxation':                   { govtMandated: 5, minPerYear: 5 },
 }
 
-function loadTopicConfig(): AllTopicConfig {
+function loadSubTopicConfig(): SubTopicConfig {
   try {
-    const raw = localStorage.getItem('cpd-topic-config-v2')
+    const raw = localStorage.getItem('cpd-subtopic-config')
     if (raw) {
       const stored = JSON.parse(raw)
-      return Object.fromEntries(
-        CPD_TOPICS.map(t => [t.area, { ...DEFAULT_TOPIC_CONFIG[t.area], ...(stored[t.area] ?? {}) }])
-      )
+      return Object.fromEntries(SUB_TOPICS.map(t => [t, { ...DEFAULT_SUBTOPIC_CONFIG[t], ...(stored[t] ?? {}) }]))
     }
   } catch {}
-  return { ...DEFAULT_TOPIC_CONFIG }
+  return { ...DEFAULT_SUBTOPIC_CONFIG }
 }
 
 type Period = 'quarterly' | 'half-yearly' | 'yearly'
 const PERIOD_LABELS: Record<Period, string> = { quarterly: 'Quarterly', 'half-yearly': '6 Months', yearly: 'Yearly' }
+const PERIOD_SUFFIX: Record<Period, string> = { quarterly: 'Per Quarter', 'half-yearly': 'Per 6 Months', yearly: 'Per Year' }
+const PERIOD_DIVISOR: Record<Period, number> = { quarterly: 4, 'half-yearly': 2, yearly: 1 }
+function scaledValue(yearly: number, p: Period) { return Math.ceil(yearly / PERIOD_DIVISOR[p]) }
+
+function splitTitle(title: string): string {
+  const words = title.split(' ')
+  if (words.length <= 2) return title
+  const mid = Math.ceil(words.length / 2)
+  return words.slice(0, mid).join(' ') + '\n' + words.slice(mid).join(' ')
+}
 
 function SortIcon({ active, dir }: { active: boolean; dir: 'asc' | 'desc' }) {
   return (
@@ -55,15 +94,16 @@ export default function CpdPlanPage() {
   )
   const [editingDate, setEditingDate] = useState(false)
   const [members, setMembers]         = useState<Member[]>(() => loadMembers())
-  const [allPoints, setAllPoints]     = useState<AllPoints>(() => loadAllPoints())
+  const [allPoints, setAllPoints]     = useState<AllPoints>(() => loadAllKAPoints())
 
   const [sortKey, setSortKey]   = useState<string>('_default')
   const [sortDir, setSortDir]   = useState<'asc' | 'desc'>('asc')
   const [page, setPage]         = useState(1)
   const PAGE_SIZE = 8
 
-  const [topicConfig, setTopicConfig] = useState<AllTopicConfig>(() => loadTopicConfig())
-  const [period, setPeriod]           = useState<Period>('yearly')
+  const [topicConfig, setTopicConfig]   = useState<AllTopicConfig>(() => loadTopicConfig())
+  const [subTopicConfig, setSubTopicConfig] = useState<SubTopicConfig>(() => loadSubTopicConfig())
+  const [period, setPeriod]             = useState<Period>('yearly')
   const [periodOpen, setPeriodOpen]   = useState(false)
   const periodRef = useRef<HTMLDivElement>(null)
 
@@ -75,6 +115,14 @@ export default function CpdPlanPage() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  function updateSubTopicConfig(topic: string, field: 'govtMandated' | 'minPerYear', value: number) {
+    setSubTopicConfig(prev => {
+      const next = { ...prev, [topic]: { ...(prev[topic] ?? { govtMandated: 0, minPerYear: 0 }), [field]: value } }
+      localStorage.setItem('cpd-subtopic-config', JSON.stringify(next))
+      return next
+    })
+  }
+
   function updateTopicConfig(area: string, field: keyof TopicConfig, value: number | boolean) {
     setTopicConfig(prev => {
       const next = { ...prev, [area]: { ...(prev[area] ?? DEFAULT_TOPIC_CONFIG[area]), [field]: value } }
@@ -85,7 +133,7 @@ export default function CpdPlanPage() {
 
   useEffect(() => {
     setMembers(loadMembers())
-    setAllPoints(loadAllPoints())
+    setAllPoints(loadAllKAPoints())
   }, [])
 
   function toggleSort(key: string) {
@@ -103,11 +151,11 @@ export default function CpdPlanPage() {
       let vb: string | number
       if (sortKey === 'name')  { va = a.name;  vb = b.name }
       else if (sortKey === 'email') { va = a.email; vb = b.email }
-      else if (sortKey === 'total') { va = grandTotal(ptsA); vb = grandTotal(ptsB) }
+      else if (sortKey === 'total') { va = kaGrandTotal(ptsA); vb = kaGrandTotal(ptsB) }
       else {
-        const topic = CPD_TOPICS.find(t => t.area === sortKey)
-        va = topic ? topicTotal(ptsA, topic) : 0
-        vb = topic ? topicTotal(ptsB, topic) : 0
+        const topic = CPD_KNOWLEDGE_AREAS.find(t => t.area === sortKey)
+        va = topic ? kaTopicTotal(ptsA, topic) : 0
+        vb = topic ? kaTopicTotal(ptsB, topic) : 0
       }
       const cmp = typeof va === 'number' ? va - (vb as number) : (va as string).localeCompare(vb as string)
       return sortDir === 'asc' ? cmp : -cmp
@@ -217,29 +265,12 @@ export default function CpdPlanPage() {
               </div>
             </div>
 
-            {/* Accumulation cards */}
-            <div className="flex gap-[11px]">
-              {[
-                { label: 'Quarterly', sublabel: 'Points needed every 3 months', value: quarterly },
-                { label: '6 Months',  sublabel: 'Points needed every 6 months',  value: half      },
-                { label: 'Yearly',    sublabel: 'Total points needed per year',   value: yearly    },
-              ].map((card) => (
-                <div key={card.label} className="bg-[#f6f6f6] rounded-[14px] flex-1 h-[170px] px-[23px] pt-[19px] pb-[18px] flex flex-col justify-between items-center text-center">
-                  <p className="text-[16px] font-bold text-[#0a0a0a]">{card.label}</p>
-                  <div className="flex items-end gap-[6px]">
-                    <span className="text-[67px] font-semibold text-[#1182e3] leading-none">{card.value}</span>
-                    <span className="text-[21px] font-medium text-[#565656] mb-2">pts</span>
-                  </div>
-                  <p className="text-[12px] text-[#818181] font-normal">{card.sublabel}</p>
-                </div>
-              ))}
-            </div>
           </div>
 
           {/* Topic Requirements */}
           <div className="bg-white rounded-[14px] pt-[19px] pb-[29px] px-[29px] flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-[18px] font-semibold text-[#0a0a0a]">Topic Requirements</h2>
+              <h2 className="text-[18px] font-semibold text-[#0a0a0a]">Major Topic</h2>
               {/* Period selector */}
               <div className="relative" ref={periodRef}>
                 <button
@@ -281,7 +312,7 @@ export default function CpdPlanPage() {
                   >
                     {/* Card header */}
                     <div className="flex items-start justify-between min-h-[41px]">
-                      <p className="text-[16px] font-medium text-[#0a0a0a] leading-[1.3]">{topic.area}</p>
+                      <p className="text-[16px] font-medium text-[#0a0a0a] leading-[1.3] whitespace-pre-line">{splitTitle(topic.area)}</p>
                       {isTax && (
                         <button
                           onClick={() => updateTopicConfig(topic.area, 'enabled', !cfg.enabled)}
@@ -296,17 +327,17 @@ export default function CpdPlanPage() {
                     <div className="flex gap-2">
                       {[
                         { field: 'govtMandated' as const, label: 'Govt Mandated\nMinimum Points' },
-                        { field: 'minPerYear'    as const, label: 'Minimum Points\nPer Year'      },
+                        { field: 'minPerYear'    as const, label: `Minimum Points\n${PERIOD_SUFFIX[period]}` },
                       ].map(({ field, label }) => (
-                        <div key={field} className="bg-white rounded-[8px] flex-1 h-[100px] flex flex-col items-center justify-center gap-1 px-1">
+                        <div key={field} className="group bg-white rounded-[8px] flex-1 h-[100px] flex flex-col items-center justify-center gap-1 px-1 border border-transparent hover:border-[#d0d0d0] focus-within:border-[#1182e3] transition-colors cursor-text">
                           <input
                             type="number"
                             min="0"
-                            value={cfg[field] === 0 ? '' : cfg[field]}
-                            onChange={e => updateTopicConfig(topic.area, field, Math.max(0, parseInt(e.target.value) || 0))}
+                            value={cfg[field] === 0 ? '' : scaledValue(cfg[field], period)}
+                            onChange={e => updateTopicConfig(topic.area, field, Math.max(0, (parseInt(e.target.value) || 0) * PERIOD_DIVISOR[period]))}
                             placeholder="0"
                             disabled={isTax && !cfg.enabled}
-                            className="w-full text-center text-[37px] font-semibold text-[#1182e3] bg-transparent outline-none tracking-[-1px] leading-none"
+                            className="w-full text-center text-[37px] font-semibold text-[#1182e3] bg-transparent outline-none tracking-[-1px] leading-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           />
                           <p className="text-[11px] text-[#2b2b2b] text-center leading-[14px] whitespace-pre-line">{label}</p>
                         </div>
@@ -317,6 +348,54 @@ export default function CpdPlanPage() {
                     <div className="bg-[rgba(17,130,227,0.1)] border border-[#1182e3] rounded-[8px] h-[80px] flex items-center justify-between px-4">
                       <p className="text-[14px] font-medium text-[#0a0a0a] leading-[1.4]">Minimum Points<br/>Per Year</p>
                       <p className="text-[37px] font-semibold text-[#1182e3] tracking-[-1px]">{cfg.minPerYear}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Sub-topic Requirements */}
+          <div className="bg-white rounded-[14px] pt-[19px] pb-[29px] px-[29px] flex flex-col gap-4">
+            <div className="flex items-start justify-between gap-4">
+              <h2 className="text-[18px] font-semibold text-[#0a0a0a]">Sub-topic</h2>
+              <div className="flex flex-wrap justify-end gap-x-4 gap-y-1.5">
+                {CPD_KNOWLEDGE_AREAS.filter(t => t.subs.length > 0).map(t => (
+                  <div key={t.area} className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded-[3px] shrink-0" style={{ background: AREA_COLORS[t.area] }} />
+                    <span className="text-[11px] text-[#404040] whitespace-nowrap">{t.area}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-4 gap-3">
+              {SUB_TOPICS.map(sub => {
+                const cfg = subTopicConfig[sub] ?? { govtMandated: 0, minPerYear: 0 }
+                const bg  = SUBTOPIC_BG[sub] ?? '#f6f6f6'
+                return (
+                  <div key={sub} className="bg-[#f6f6f6] rounded-[14px] p-3 flex flex-col gap-2" style={{ border: `0.75px solid ${bg}` }}>
+                    <p className="text-[13px] font-medium text-[#0a0a0a] leading-[1.3]">{sub}</p>
+                    <div className="flex gap-1.5">
+                      {([
+                        { field: 'govtMandated' as const, label: 'Govt Mandated\nMin Points' },
+                        { field: 'minPerYear'    as const, label: `Min Points\n${PERIOD_SUFFIX[period]}` },
+                      ] as const).map(({ field, label }) => (
+                        <div key={field} className="group bg-white rounded-[6px] flex-1 h-[76px] flex flex-col items-center justify-center gap-1 border border-transparent hover:border-[#d0d0d0] focus-within:border-[#1182e3] transition-colors cursor-text">
+                          <input
+                            type="number"
+                            min="0"
+                            value={scaledValue(cfg[field], period)}
+                            onChange={e => updateSubTopicConfig(sub, field, Math.max(0, (parseInt(e.target.value) || 0) * PERIOD_DIVISOR[period]))}
+                            placeholder="0"
+                            className="w-full text-center text-[26px] font-semibold text-[#1182e3] bg-transparent outline-none tracking-[-0.5px] leading-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                          />
+                          <p className="text-[9px] text-[#2b2b2b] text-center leading-[12px] whitespace-pre-line">{label}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="bg-[rgba(17,130,227,0.1)] border border-[#1182e3] rounded-[6px] h-[52px] flex items-center justify-between px-3">
+                      <p className="text-[11px] font-medium text-[#0a0a0a] leading-[1.3]">Minimum Points<br/>Per Year</p>
+                      <p className="text-[26px] font-semibold text-[#1182e3] tracking-[-0.5px]">{cfg.minPerYear}</p>
                     </div>
                   </div>
                 )
@@ -345,10 +424,10 @@ export default function CpdPlanPage() {
                         </button>
                       </th>
                     ))}
-                    {CPD_TOPICS.map(t => (
+                    {CPD_KNOWLEDGE_AREAS.map(t => (
                       <th key={t.area} style={{ width: '10%' }} className="h-[52px] px-1 font-medium text-[#404040] leading-[13px]">
                         <button onClick={() => toggleSort(t.area)} className="flex flex-col items-center w-full hover:text-[#1182e3] transition-colors">
-                          {t.header.map((line, i) => <span key={i} className="block">{line}</span>)}
+                          {CPD_TOPICS.find(ct => ct.area === t.area)?.header.map((line, i) => <span key={i} className="block">{line}</span>)}
                           <SortIcon active={sortKey === t.area} dir={sortDir} />
                         </button>
                       </th>
@@ -370,13 +449,13 @@ export default function CpdPlanPage() {
                       <tr key={m.name} className={i < pageItems.length - 1 ? 'border-b border-[#e5e5e5]' : ''}>
                         <td className="h-[44px] px-2 text-[#404040] truncate">{m.name}</td>
                         <td className="h-[44px] px-2 text-[#404040] truncate">{m.email}</td>
-                        {CPD_TOPICS.map(t => (
+                        {CPD_KNOWLEDGE_AREAS.map(t => (
                           <td key={t.area} className="h-[44px] px-1 text-center text-[#404040]">
-                            {topicTotal(pts, t) || '—'}
+                            {kaTopicTotal(pts, t) || '—'}
                           </td>
                         ))}
                         <td className="h-[44px] px-1 text-center font-medium text-[#404040]">
-                          {grandTotal(pts) || '—'}
+                          {kaGrandTotal(pts) || '—'}
                         </td>
                         <td className="h-[44px] px-1 text-center">
                           <button

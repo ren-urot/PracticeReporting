@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import Navbar from '@/components/layout/Navbar'
 import StudentDetailSidebar from '@/components/layout/StudentDetailSidebar'
 import { Button } from '@/components/ui/button'
@@ -280,6 +280,8 @@ function downloadStudentCSV() {
 
 // ── Page ──────────────────────────────────────────────────────────────────
 export default function StudentDetailPage() {
+  const navigate = useNavigate()
+
   return (
     <div>
       <Navbar breadcrumb={[{ label: 'Dashboard' }]} />
@@ -288,12 +290,12 @@ export default function StudentDetailPage() {
 
         <main className="flex-1 min-w-0 p-4">
           {/* Back + name */}
-          <Link to="/practice-reporting" className="inline-flex items-center gap-2.5 mb-5 cursor-pointer">
+          <div className="inline-flex items-center gap-2.5 mb-5 cursor-pointer" onClick={() => navigate(-1)}>
             <svg width="14" height="14" fill="none" stroke="#203649" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <path d="M19 12H5M12 5l-7 7 7 7" />
             </svg>
             <span className="text-[25px] font-semibold text-[#203649] leading-tight">Albert Thomas</span>
-          </Link>
+          </div>
 
           {/* Action bar */}
           <div className="flex items-center justify-between mb-4">
@@ -305,7 +307,7 @@ export default function StudentDetailPage() {
             </Button>
             <div className="flex items-center gap-4 cursor-pointer" onClick={downloadStudentCSV}>
               <span className="text-[13px] font-semibold text-[#0a0a0a]">Export Entire Report to CSV</span>
-              <Button variant="blue" size="icon-lg" onClick={downloadStudentCSV}>
+              <Button variant="blue" size="icon-lg">
                 <svg width="16" height="16" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><path d="M12 18v-6M9 15l3 3 3-3" />
                 </svg>
@@ -343,6 +345,7 @@ export default function StudentDetailPage() {
           <div className="flex flex-col gap-2 pb-8">
             {courses.map((c) => <CourseCard key={c.title} {...c} />)}
           </div>
+
         </main>
       </div>
     </div>

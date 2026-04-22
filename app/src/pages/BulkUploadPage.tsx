@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Navbar from '@/components/layout/Navbar'
 import PracticeReportingSidebar from '@/components/layout/PracticeReportingSidebar'
 import { Button } from '@/components/ui/button'
+import { loadMembers, saveMembers } from '@/lib/cpdData'
 
 type Recipient = { id: number; name: string; email: string }
 
@@ -33,7 +34,7 @@ export default function BulkUploadPage() {
   const [recipients, setRecipients] = useState<Recipient[]>([])
   const [dragOver, setDragOver]     = useState(false)
   const [page, setPage]             = useState(1)
-  const [sendState, setSendState]   = useState<'idle' | 'sending' | 'sent'>('idle')
+  const [sendState, setSendState]   = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [error, setError]           = useState<string | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -93,8 +94,18 @@ export default function BulkUploadPage() {
     if (!uploaded || sendState !== 'idle') return
     setSendState('sending')
     setTimeout(() => {
-      setSendState('sent')
-      setTimeout(() => setSendState('idle'), 3000)
+      try {
+        const existing = loadMembers()
+        const newMembers = recipients
+          .filter(r => !existing.some(m => m.email === r.email))
+          .map(r => ({ name: r.name, email: r.email }))
+        saveMembers([...existing, ...newMembers])
+        setSendState('sent')
+        setTimeout(() => { setSendState('idle'); setRecipients([]) }, 3000)
+      } catch {
+        setSendState('error')
+        setTimeout(() => setSendState('idle'), 3000)
+      }
     }, 1200)
   }
 
