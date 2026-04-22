@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '@/components/layout/Navbar'
 import PracticeReportingSidebar from '@/components/layout/PracticeReportingSidebar'
@@ -10,6 +10,34 @@ import {
   REQUIRED_QUARTERLY_POINTS, REQUIRED_HALFYEARLY_POINTS, REQUIRED_YEARLY_POINTS,
   type AllPoints, type Member,
 } from '@/lib/cpdData'
+
+type TopicConfig = { govtMandated: number; minPerYear: number; enabled: boolean }
+type AllTopicConfig = Record<string, TopicConfig>
+
+const DEFAULT_TOPIC_CONFIG: AllTopicConfig = {
+  'Professionalism & Ethics':        { govtMandated: 9, minPerYear: 9, enabled: true  },
+  'Client Care & Practice':          { govtMandated: 5, minPerYear: 5, enabled: true  },
+  'Technical Competence':            { govtMandated: 5, minPerYear: 5, enabled: true  },
+  'Regulatory & Consumer Protection':{ govtMandated: 5, minPerYear: 5, enabled: true  },
+  'General':                         { govtMandated: 0, minPerYear: 0, enabled: true  },
+  'Tax Advice':                      { govtMandated: 5, minPerYear: 5, enabled: true  },
+}
+
+function loadTopicConfig(): AllTopicConfig {
+  try {
+    const raw = localStorage.getItem('cpd-topic-config-v2')
+    if (raw) {
+      const stored = JSON.parse(raw)
+      return Object.fromEntries(
+        CPD_TOPICS.map(t => [t.area, { ...DEFAULT_TOPIC_CONFIG[t.area], ...(stored[t.area] ?? {}) }])
+      )
+    }
+  } catch {}
+  return { ...DEFAULT_TOPIC_CONFIG }
+}
+
+type Period = 'quarterly' | 'half-yearly' | 'yearly'
+const PERIOD_LABELS: Record<Period, string> = { quarterly: 'Quarterly', 'half-yearly': '6 Months', yearly: 'Yearly' }
 
 function SortIcon({ active, dir }: { active: boolean; dir: 'asc' | 'desc' }) {
   return (
@@ -33,6 +61,27 @@ export default function CpdPlanPage() {
   const [sortDir, setSortDir]   = useState<'asc' | 'desc'>('asc')
   const [page, setPage]         = useState(1)
   const PAGE_SIZE = 8
+
+  const [topicConfig, setTopicConfig] = useState<AllTopicConfig>(() => loadTopicConfig())
+  const [period, setPeriod]           = useState<Period>('yearly')
+  const [periodOpen, setPeriodOpen]   = useState(false)
+  const periodRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (periodRef.current && !periodRef.current.contains(e.target as Node)) setPeriodOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  function updateTopicConfig(area: string, field: keyof TopicConfig, value: number | boolean) {
+    setTopicConfig(prev => {
+      const next = { ...prev, [area]: { ...(prev[area] ?? DEFAULT_TOPIC_CONFIG[area]), [field]: value } }
+      localStorage.setItem('cpd-topic-config-v2', JSON.stringify(next))
+      return next
+    })
+  }
 
   useEffect(() => {
     setMembers(loadMembers())
@@ -187,7 +236,95 @@ export default function CpdPlanPage() {
             </div>
           </div>
 
-          {/* CPD Plan */}
+          {/* Topic Requirements */}
+          <div className="bg-white rounded-[14px] pt-[19px] pb-[29px] px-[29px] flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-[18px] font-semibold text-[#0a0a0a]">Topic Requirements</h2>
+              {/* Period selector */}
+              <div className="relative" ref={periodRef}>
+                <button
+                  onClick={() => setPeriodOpen(o => !o)}
+                  className="flex items-center gap-2 h-[36px] pl-[13px] pr-[13px] border border-[#d0d0d0] rounded-[8px] bg-white text-[14px] font-medium text-[#0a0a0a]"
+                >
+                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                  {PERIOD_LABELS[period]}
+                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                {periodOpen && (
+                  <div className="absolute right-0 top-[40px] bg-white border border-[#e2e2e2] rounded-[8px] shadow-lg z-10 w-[140px] overflow-hidden">
+                    {(['quarterly', 'half-yearly', 'yearly'] as Period[]).map(p => (
+                      <button
+                        key={p}
+                        onClick={() => { setPeriod(p); setPeriodOpen(false) }}
+                        className={`w-full text-left px-4 py-2.5 text-[13px] hover:bg-gray-50 transition-colors ${period === p ? 'text-[#1182e3] font-medium' : 'text-[#404040]'}`}
+                      >
+                        {PERIOD_LABELS[p]}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              {CPD_TOPICS.map(topic => {
+                const cfg = topicConfig[topic.area] ?? DEFAULT_TOPIC_CONFIG[topic.area]
+                const isTax = topic.area === 'Tax Advice'
+                return (
+                  <div
+                    key={topic.area}
+                    className={`bg-[#f6f6f6] rounded-[20px] p-4 flex flex-col gap-3 transition-opacity ${isTax && !cfg.enabled ? 'opacity-50' : ''}`}
+                  >
+                    {/* Card header */}
+                    <div className="flex items-start justify-between min-h-[41px]">
+                      <p className="text-[16px] font-medium text-[#0a0a0a] leading-[1.3]">{topic.area}</p>
+                      {isTax && (
+                        <button
+                          onClick={() => updateTopicConfig(topic.area, 'enabled', !cfg.enabled)}
+                          className={`rounded-full h-[22px] w-[42px] flex items-center transition-colors duration-200 shrink-0 mt-0.5 ${cfg.enabled ? 'bg-[#1182e3] justify-end pr-[3px]' : 'bg-[#d9d9d9] justify-start pl-[3px]'}`}
+                        >
+                          <div className="bg-white rounded-full w-[16px] h-[16px] shadow-sm" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Two editable white boxes */}
+                    <div className="flex gap-2">
+                      {[
+                        { field: 'govtMandated' as const, label: 'Govt Mandated\nMinimum Points' },
+                        { field: 'minPerYear'    as const, label: 'Minimum Points\nPer Year'      },
+                      ].map(({ field, label }) => (
+                        <div key={field} className="bg-white rounded-[8px] flex-1 h-[100px] flex flex-col items-center justify-center gap-1 px-1">
+                          <input
+                            type="number"
+                            min="0"
+                            value={cfg[field] === 0 ? '' : cfg[field]}
+                            onChange={e => updateTopicConfig(topic.area, field, Math.max(0, parseInt(e.target.value) || 0))}
+                            placeholder="0"
+                            disabled={isTax && !cfg.enabled}
+                            className="w-full text-center text-[37px] font-semibold text-[#1182e3] bg-transparent outline-none tracking-[-1px] leading-none"
+                          />
+                          <p className="text-[11px] text-[#2b2b2b] text-center leading-[14px] whitespace-pre-line">{label}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Bottom blue summary box */}
+                    <div className="bg-[rgba(17,130,227,0.1)] border border-[#1182e3] rounded-[8px] h-[80px] flex items-center justify-between px-4">
+                      <p className="text-[14px] font-medium text-[#0a0a0a] leading-[1.4]">Minimum Points<br/>Per Year</p>
+                      <p className="text-[37px] font-semibold text-[#1182e3] tracking-[-1px]">{cfg.minPerYear}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Members */}
           <div className="bg-white rounded-[10px] pt-[13px] pb-[29px] px-[31px]">
             <div className="mb-4">
               <h2 className="text-[18px] font-semibold text-[#0a0a0a]">Members</h2>
