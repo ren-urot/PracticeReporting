@@ -3,19 +3,7 @@ import { Link } from 'react-router-dom'
 import Navbar from '@/components/layout/Navbar'
 import PracticeReportingSidebar from '@/components/layout/PracticeReportingSidebar'
 import { Button } from '@/components/ui/button'
-
-const students = [
-  { name: 'Albert Thomas', ar: '123456789', ethics: 4.50, client: 3.25, technical: 4.75, regulatory: 1.25, general: 1.50, tax: 3.25, total: 15.25, id: 'albert-thomas' },
-  { name: 'Jonathan Smith', ar: '123456789', ethics: 4.50, client: 3.25, technical: 4.75, regulatory: 1.25, general: 1.50, tax: 3.25, total: 15.25, id: '' },
-  { name: 'Christine Marks', ar: '123456789', ethics: 4.50, client: 3.25, technical: 4.75, regulatory: 1.25, general: 1.50, tax: 3.25, total: 15.25, id: '' },
-  { name: 'Jonah Rocks', ar: '123456789', ethics: 4.50, client: 3.25, technical: 4.75, regulatory: 1.25, general: 1.50, tax: 3.25, total: 15.25, id: '' },
-  { name: 'Sarah Marks', ar: '123456789', ethics: 4.50, client: 3.25, technical: 4.75, regulatory: 1.25, general: 1.50, tax: 3.25, total: 15.25, id: '' },
-  { name: 'Marky Jacks', ar: '123456789', ethics: 4.50, client: 3.25, technical: 4.75, regulatory: 1.25, general: 1.50, tax: 3.25, total: 15.25, id: '' },
-  { name: 'Anthony Carr', ar: '123456789', ethics: 4.50, client: 3.25, technical: 4.75, regulatory: 1.25, general: 1.50, tax: 3.25, total: 15.25, id: '' },
-  { name: 'Mark Smith', ar: '123456789', ethics: 4.50, client: 3.25, technical: 4.75, regulatory: 1.25, general: 1.50, tax: 3.25, total: 15.25, id: '' },
-  { name: 'Jesse Jackson', ar: '123456789', ethics: 4.50, client: 3.25, technical: 4.75, regulatory: 1.25, general: 1.50, tax: 3.25, total: 15.25, id: '' },
-  { name: 'Susan Mann', ar: '123456789', ethics: 4.50, client: 3.25, technical: 4.75, regulatory: 1.25, general: 1.50, tax: 3.25, total: 15.25, id: '' },
-]
+import { loadMembers, loadAllKAPoints, kaTopicTotal, kaGrandTotal, CPD_KNOWLEDGE_AREAS } from '@/lib/cpdData'
 
 type SortKey = 'name'
 
@@ -37,23 +25,14 @@ function SortIcon({ active, dir }: { active: boolean; dir: 'asc' | 'desc' }) {
   )
 }
 
-function downloadCSV() {
-  const headers = ['Name', 'AR Number', 'Professionals & Ethics', 'Client Care & Practice', 'Technical Competence', 'Regulatory & Consumer Protection', 'General', 'Tax Advice', 'Total']
-  const rows = students.map(s => [s.name, s.ar, s.ethics.toFixed(2), s.client.toFixed(2), s.technical.toFixed(2), s.regulatory.toFixed(2), s.general.toFixed(2), s.tax.toFixed(2), s.total.toFixed(2)])
-  const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n')
-  const a = document.createElement('a')
-  a.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv))
-  a.setAttribute('download', 'practice-reporting.csv')
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-}
-
 export default function PracticeReportingPage() {
   const [activePage, setActivePage] = useState(1)
   const [sortKey] = useState<SortKey>('name')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const PAGE_SIZE = 8
+
+  const members  = loadMembers()
+  const allPoints = loadAllKAPoints()
 
   function toggleSort(_key: SortKey) {
     setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -61,25 +40,40 @@ export default function PracticeReportingPage() {
   }
 
   const sorted = useMemo(() => {
-    return [...students].sort((a, b) => {
+    return [...members].sort((a, b) => {
       const cmp = a.name.localeCompare(b.name)
       return sortDir === 'asc' ? cmp : -cmp
     })
-  }, [sortDir])
+  }, [members, sortDir])
 
   const totalPages = Math.ceil(sorted.length / PAGE_SIZE)
   const pageItems  = sorted.slice((activePage - 1) * PAGE_SIZE, activePage * PAGE_SIZE)
 
-  const cols: { key: string; lines: string[]; align?: string; w: string }[] = [
-    { key: 'name',       lines: ['Name'],                              align: 'left',   w: '14%' },
-    { key: 'ar',         lines: ['AR Number'],                         align: 'center', w: '11%' },
-    { key: 'ethics',     lines: ['Professionals', '& Ethics'],         align: 'center', w: '10%' },
-    { key: 'client',     lines: ['Client Care', '& Practice'],         align: 'center', w: '10%' },
-    { key: 'technical',  lines: ['Technical', 'Competence'],           align: 'center', w: '10%' },
-    { key: 'regulatory', lines: ['Regulatory', '& Consumer', 'Protection'], align: 'center', w: '13%' },
-    { key: 'general',    lines: ['General'],                           align: 'center', w: '8%'  },
-    { key: 'tax',        lines: ['Tax', 'Advice'],                     align: 'center', w: '8%'  },
-    { key: 'total',      lines: ['Total'],                             align: 'center', w: '8%'  },
+  function downloadCSV() {
+    const headers = ['Name', 'Email', ...CPD_KNOWLEDGE_AREAS.map(t => t.area), 'Total']
+    const rows = sorted.map(m => {
+      const pts = allPoints[m.name] ?? {}
+      return [m.name, m.email, ...CPD_KNOWLEDGE_AREAS.map(t => kaTopicTotal(pts, t)), kaGrandTotal(pts)]
+    })
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n')
+    const a = document.createElement('a')
+    a.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv))
+    a.setAttribute('download', 'practice-reporting.csv')
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  }
+
+  const cols: { key: string; lines: string[]; w: string }[] = [
+    { key: 'name',       lines: ['Name'],                                   w: '14%' },
+    { key: 'email',      lines: ['Email'],                                  w: '13%' },
+    { key: 'ethics',     lines: ['Professionals', '& Ethics'],              w: '10%' },
+    { key: 'client',     lines: ['Client Care', '& Practice'],              w: '10%' },
+    { key: 'technical',  lines: ['Technical', 'Competence'],                w: '10%' },
+    { key: 'regulatory', lines: ['Regulatory', '& Consumer', 'Protection'], w: '11%' },
+    { key: 'general',    lines: ['General'],                                w: '7%'  },
+    { key: 'tax',        lines: ['Tax', 'Advice'],                          w: '7%'  },
+    { key: 'total',      lines: ['Total'],                                  w: '7%'  },
   ]
 
   return (
@@ -96,7 +90,7 @@ export default function PracticeReportingPage() {
               <h1 className="text-[18px] font-semibold text-[#0a0a0a]">Practice Reporting</h1>
               <div className="flex items-center gap-3 cursor-pointer" onClick={downloadCSV}>
                 <span className="text-[14px] font-bold text-[#0a0a0a]">Download CSV</span>
-                <Button variant="blue" size="icon-round" onClick={downloadCSV}>
+                <Button variant="blue" size="icon-round">
                   <svg width="16" height="16" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                     <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
                   </svg>
@@ -134,30 +128,27 @@ export default function PracticeReportingPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {pageItems.map((s) => (
-                        <tr key={s.name} className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors">
-                          <td className="h-[46px] px-[15px] truncate">{s.name}</td>
-                          <td className="h-[46px] px-2 text-center">{s.ar}</td>
-                          <td className="h-[46px] px-2 text-center">{s.ethics.toFixed(2)}</td>
-                          <td className="h-[46px] px-2 text-center">{s.client.toFixed(2)}</td>
-                          <td className="h-[46px] px-2 text-center">{s.technical.toFixed(2)}</td>
-                          <td className="h-[46px] px-2 text-center">{s.regulatory.toFixed(2)}</td>
-                          <td className="h-[46px] px-2 text-center">{s.general.toFixed(2)}</td>
-                          <td className="h-[46px] px-2 text-center">{s.tax.toFixed(2)}</td>
-                          <td className="h-[46px] px-2 text-center font-medium">{s.total.toFixed(2)}</td>
-                          <td className="h-[46px] px-2 text-center">
-                            {s.id ? (
-                              <Link to={`/student/${s.id}`} className="inline-flex items-center justify-center w-5 h-5 hover:text-[#1182e3] transition-colors">
+                      {pageItems.map((m) => {
+                        const pts = allPoints[m.name] ?? {}
+                        const topicTotals = CPD_KNOWLEDGE_AREAS.map(t => kaTopicTotal(pts, t))
+                        const grand = kaGrandTotal(pts)
+                        const memberIdx = members.findIndex(x => x.name === m.name)
+                        return (
+                          <tr key={m.name} className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors">
+                            <td className="h-[46px] px-[15px] truncate">{m.name}</td>
+                            <td className="h-[46px] px-2 truncate text-[#737373]">{m.email}</td>
+                            {topicTotals.map((v, i) => (
+                              <td key={i} className="h-[46px] px-2 text-center">{v || '—'}</td>
+                            ))}
+                            <td className="h-[46px] px-2 text-center font-medium">{grand || '—'}</td>
+                            <td className="h-[46px] px-2 text-center">
+                              <Link to={`/student/${memberIdx}`} className="inline-flex items-center justify-center w-5 h-5 hover:text-[#1182e3] transition-colors">
                                 <ViewDetailsIcon />
                               </Link>
-                            ) : (
-                              <a href="#" className="inline-flex items-center justify-center w-5 h-5 hover:text-[#1182e3] transition-colors">
-                                <ViewDetailsIcon />
-                              </a>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -178,12 +169,7 @@ export default function PracticeReportingPage() {
                     Previous
                   </Button>
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                    <Button
-                      key={p}
-                      variant={activePage === p ? 'outline' : 'ghost'}
-                      size="pagination"
-                      onClick={() => setActivePage(p)}
-                    >
+                    <Button key={p} variant={activePage === p ? 'outline' : 'ghost'} size="pagination" onClick={() => setActivePage(p)}>
                       {p}
                     </Button>
                   ))}

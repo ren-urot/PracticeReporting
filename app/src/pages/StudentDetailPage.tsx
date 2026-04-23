@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import Navbar from '@/components/layout/Navbar'
 import StudentDetailSidebar from '@/components/layout/StudentDetailSidebar'
 import { Button } from '@/components/ui/button'
+import { loadAllKAPoints, kaTopicTotal, kaGrandTotal, CPD_KNOWLEDGE_AREAS, loadTopicConfig, DEFAULT_TOPIC_CONFIG, loadMembers } from '@/lib/cpdData'
 
 // ── Gauge ─────────────────────────────────────────────────────────────────
 const CIRC = parseFloat((2 * Math.PI * 30).toFixed(1)) // 188.5
@@ -87,15 +88,6 @@ function Gauge({ value, color, fillLength, dashed, label, sublabel, sublabelColo
   )
 }
 
-const gauges: GaugeProps[] = [
-  { value: '7.5/5', color: '#4ade80', fillLength: CIRC,  label: 'Technical Competence',    sublabel: 'Requirement met', sublabelColor: '#4ade80',               animDelay: 0   },
-  { value: '8/9',   color: '#93c5fd', fillLength: 167.6, label: 'Professionalism & Ethics', sublabel: '1.0 pts to go',   sublabelColor: '#93c5fd',               animDelay: 100 },
-  { value: '7/5',   color: '#4ade80', fillLength: CIRC,  label: 'Client Care & Practice',   sublabel: 'Requirement met', sublabelColor: '#4ade80',               animDelay: 200 },
-  { value: '0/5',   color: '#93c5fd', fillLength: 0,     label: 'Regulatory Compliance',    sublabel: '5.0 pts to go',   sublabelColor: '#93c5fd',               animDelay: 300 },
-  { value: '1/–',   color: '',        fillLength: 0,     label: 'General',                  sublabel: 'No requirement',  sublabelColor: 'rgba(255,255,255,0.4)', dashed: true, animDelay: 400 },
-  { value: '3/5',   color: '#93c5fd', fillLength: 113.1, label: 'Tax (Financial) Advice',   sublabel: '2.0 pts to go',   sublabelColor: '#93c5fd',               animDelay: 500, toggle: true },
-]
-
 // ── Subject tile ──────────────────────────────────────────────────────────
 interface SubjectTileProps { label: string; value?: string }
 
@@ -110,14 +102,6 @@ function SubjectTile({ label, value }: SubjectTileProps) {
     </div>
   )
 }
-
-const subjects: SubjectTileProps[] = [
-  { label: 'Super' }, { label: 'Derivatives' }, { label: 'Financial planning', value: '0.25' }, { label: 'Aged care' },
-  { label: 'Retirement income streams' }, { label: 'Self Managed Super Funds' }, { label: 'Retirement', value: '0.25' }, { label: 'Skills' },
-  { label: 'Securities' }, { label: 'Social Security' }, { label: 'Compliance', value: '0.5' }, { label: 'Managed investments', value: '0.25' },
-  { label: 'Taxation' }, { label: 'General knowledge', value: '0.25' }, { label: 'Responsible Manager' }, { label: 'Estate planning' },
-  { label: 'Fixed Interest' }, { label: 'Margin lending' }, { label: 'Practice management' }, { label: 'Life Insurance' },
-]
 
 // ── Course card ───────────────────────────────────────────────────────────
 interface CourseCardProps {
@@ -238,49 +222,85 @@ const courses: CourseCardProps[] = [
   },
 ]
 
-// ── CSV Export ────────────────────────────────────────────────────────────
-function downloadStudentCSV() {
-  const rows: string[][] = []
-
-  rows.push(['Student Report: Albert Thomas'])
-  rows.push([])
-
-  rows.push(['ANNUAL COMPLIANCE PROGRESS'])
-  rows.push(['CPD Points Earned', 'CPD Points Required', 'Progress'])
-  rows.push(['26.5', '40', '66%'])
-  rows.push([])
-
-  rows.push(['CATEGORY BREAKDOWN'])
-  rows.push(['Category', 'Progress', 'Status'])
-  gauges.forEach(g => rows.push([g.label, g.value, g.sublabel]))
-  rows.push([])
-
-  rows.push(['SUBJECTS'])
-  rows.push(['Subject', 'Points'])
-  subjects.forEach(s => rows.push([s.label, s.value ?? '–']))
-  rows.push([])
-
-  rows.push(['COMPLETED EDUCATION'])
-  rows.push(['Title', 'Description', 'CPD Points', 'Categories'])
-  courses.forEach(c => rows.push([
-    c.title,
-    c.description,
-    String(c.points),
-    c.categories.filter(cat => cat.active).map(cat => cat.label).join('; '),
-  ]))
-
-  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n')
-  const a = document.createElement('a')
-  a.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv))
-  a.setAttribute('download', 'albert-thomas-report.csv')
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
+// ── Page ──────────────────────────────────────────────────────────────────
+const GAUGE_LABEL_MAP: Record<string, string> = {
+  'Regulatory & Consumer Protection': 'Regulatory Compliance',
+  'Tax Advice': 'Tax (Financial) Advice',
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────
 export default function StudentDetailPage() {
   const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
+  const members = loadMembers()
+  const member = members[parseInt(id ?? '0')] ?? members[0]
+
+  const pts = loadAllKAPoints()[member.name] ?? {}
+  const topicConfig = loadTopicConfig()
+
+  const gauges: GaugeProps[] = CPD_KNOWLEDGE_AREAS.map((topic, i) => {
+    const earned = kaTopicTotal(pts, topic)
+    const cfg = topicConfig[topic.area] ?? DEFAULT_TOPIC_CONFIG[topic.area]
+    const required = cfg?.minPerYear ?? 0
+    const hasReq = required > 0
+    const met = hasReq && earned >= required
+    const fillLength = hasReq ? Math.min(earned / required, 1) * CIRC : 0
+    const color = hasReq ? (met ? '#4ade80' : '#93c5fd') : ''
+    const sublabel = hasReq ? (met ? 'Requirement met' : `${(required - earned).toFixed(1)} pts to go`) : 'No requirement'
+    const sublabelColor = hasReq ? (met ? '#4ade80' : '#93c5fd') : 'rgba(255,255,255,0.4)'
+    return {
+      value: hasReq ? `${earned}/${required}` : `${earned}/–`,
+      color, fillLength, dashed: !hasReq,
+      label: GAUGE_LABEL_MAP[topic.area] ?? topic.area,
+      sublabel, sublabelColor,
+      toggle: topic.area === 'Tax Advice',
+      animDelay: i * 100,
+    }
+  })
+
+  const subjects: SubjectTileProps[] = CPD_KNOWLEDGE_AREAS.flatMap(topic =>
+    topic.subs.map(sub => {
+      const v = pts[sub]
+      return { label: sub, value: v && v > 0 ? String(v) : undefined }
+    })
+  )
+
+  const totalEarned = kaGrandTotal(pts)
+  const totalRequired = CPD_KNOWLEDGE_AREAS.reduce((sum, t) => {
+    const cfg = topicConfig[t.area] ?? DEFAULT_TOPIC_CONFIG[t.area]
+    return sum + (cfg?.minPerYear ?? 0)
+  }, 0)
+  const pct = totalRequired > 0 ? Math.round((totalEarned / totalRequired) * 100) : 0
+
+  function downloadStudentCSV() {
+    const rows: string[][] = []
+    rows.push([`Student Report: ${member.name}`])
+    rows.push([])
+    rows.push(['ANNUAL COMPLIANCE PROGRESS'])
+    rows.push(['CPD Points Earned', 'CPD Points Required', 'Progress'])
+    rows.push([String(totalEarned), String(totalRequired), `${pct}%`])
+    rows.push([])
+    rows.push(['CATEGORY BREAKDOWN'])
+    rows.push(['Category', 'Progress', 'Status'])
+    gauges.forEach(g => rows.push([g.label, g.value, g.sublabel]))
+    rows.push([])
+    rows.push(['SUBJECTS'])
+    rows.push(['Subject', 'Points'])
+    subjects.forEach(s => rows.push([s.label, s.value ?? '–']))
+    rows.push([])
+    rows.push(['COMPLETED EDUCATION'])
+    rows.push(['Title', 'Description', 'CPD Points', 'Categories'])
+    courses.forEach(c => rows.push([
+      c.title, c.description, String(c.points),
+      c.categories.filter(cat => cat.active).map(cat => cat.label).join('; '),
+    ]))
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n')
+    const a = document.createElement('a')
+    a.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv))
+    a.setAttribute('download', `${member.name.toLowerCase().replace(/\s+/g, '-')}-report.csv`)
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  }
 
   return (
     <div>
@@ -294,7 +314,7 @@ export default function StudentDetailPage() {
             <svg width="14" height="14" fill="none" stroke="#203649" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <path d="M19 12H5M12 5l-7 7 7 7" />
             </svg>
-            <span className="text-[25px] font-semibold text-[#203649] leading-tight">Albert Thomas</span>
+            <span className="text-[25px] font-semibold text-[#203649] leading-tight">{member.name}</span>
           </div>
 
           {/* Action bar */}
@@ -321,13 +341,13 @@ export default function StudentDetailPage() {
               <p className="text-[14px] font-semibold text-[#1a2744] mb-3">Annual Compliance Progress</p>
               <div className="flex items-end justify-between mb-3">
                 <div>
-                  <p className="text-[50px] font-bold text-[#1182e3] leading-none">26.5</p>
-                  <p className="text-[14px] text-[#6b7280] mt-1">of 40 <span className="text-[#1182e3] font-medium">CPD points</span> earned</p>
+                  <p className="text-[50px] font-bold text-[#1182e3] leading-none">{totalEarned}</p>
+                  <p className="text-[14px] text-[#6b7280] mt-1">of {totalRequired} <span className="text-[#1182e3] font-medium">CPD points</span> earned</p>
                 </div>
-                <p className="text-[20px] font-bold text-[#1a2744]">66%</p>
+                <p className="text-[20px] font-bold text-[#1a2744]">{pct}%</p>
               </div>
               <div className="bg-[#e5e7eb] h-2 rounded-full overflow-hidden">
-                <div className="bg-[#1182e3] h-full rounded-full" style={{ width: '66%' }} />
+                <div className="bg-[#1182e3] h-full rounded-full" style={{ width: `${pct}%` }} />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3">

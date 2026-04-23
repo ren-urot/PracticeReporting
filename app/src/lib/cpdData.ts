@@ -144,28 +144,45 @@ const DEFAULT_KA_POINTS: Record<string, number> = {
   'Taxation': 5,
 }
 
+// Per-member sample defaults so the table shows variety
+const MEMBER_KA_SAMPLES: Record<string, MemberPoints> = {
+  'Albert Thomas':   { Skills:3, 'Practice management':3, 'General knowledge':3, 'Aged care':2, 'Social Security':1, 'Estate planning':2, Super:1, Derivatives:0, 'Financial planning':1, 'Retirement income streams':1, 'Self Managed Super Funds':1, Retirement:0, Securities:1, 'Managed investments':1, 'Fixed Interest':0, 'Margin lending':0, 'Life Insurance':0, Compliance:3, 'Responsible Manager':2, Taxation:5 },
+  'Jonathan Smith':  { Skills:2, 'Practice management':3, 'General knowledge':2, 'Aged care':1, 'Social Security':1, 'Estate planning':1, Super:2, Derivatives:1, 'Financial planning':2, 'Retirement income streams':1, 'Self Managed Super Funds':1, Retirement:0, Securities:1, 'Managed investments':0, 'Fixed Interest':0, 'Margin lending':0, 'Life Insurance':0, Compliance:2, 'Responsible Manager':2, Taxation:5 },
+  'Christine Marks': { Skills:3, 'Practice management':3, 'General knowledge':3, 'Aged care':2, 'Social Security':1, 'Estate planning':2, Super:1, Derivatives:0, 'Financial planning':1, 'Retirement income streams':1, 'Self Managed Super Funds':1, Retirement:0, Securities:1, 'Managed investments':0, 'Fixed Interest':0, 'Margin lending':0, 'Life Insurance':0, Compliance:3, 'Responsible Manager':2, Taxation:3 },
+  'Jonah Rocks':     { Skills:2, 'Practice management':2, 'General knowledge':2, 'Aged care':2, 'Social Security':1, 'Estate planning':1, Super:2, Derivatives:1, 'Financial planning':2, 'Retirement income streams':2, 'Self Managed Super Funds':1, Retirement:1, Securities:0, 'Managed investments':1, 'Fixed Interest':0, 'Margin lending':0, 'Life Insurance':0, Compliance:2, 'Responsible Manager':1, Taxation:5 },
+  'Sarah Marks':     { Skills:3, 'Practice management':3, 'General knowledge':2, 'Aged care':2, 'Social Security':1, 'Estate planning':2, Super:1, Derivatives:0, 'Financial planning':2, 'Retirement income streams':1, 'Self Managed Super Funds':1, Retirement:1, Securities:1, 'Managed investments':0, 'Fixed Interest':0, 'Margin lending':0, 'Life Insurance':0, Compliance:3, 'Responsible Manager':2, Taxation:4 },
+  'Marky Jacks':     { Skills:2, 'Practice management':2, 'General knowledge':1, 'Aged care':1, 'Social Security':1, 'Estate planning':1, Super:1, Derivatives:0, 'Financial planning':1, 'Retirement income streams':1, 'Self Managed Super Funds':0, Retirement:0, Securities:0, 'Managed investments':1, 'Fixed Interest':0, 'Margin lending':0, 'Life Insurance':0, Compliance:1, 'Responsible Manager':1, Taxation:2 },
+  'Anthony Carr':    { Skills:3, 'Practice management':3, 'General knowledge':3, 'Aged care':2, 'Social Security':1, 'Estate planning':2, Super:2, Derivatives:1, 'Financial planning':2, 'Retirement income streams':1, 'Self Managed Super Funds':1, Retirement:1, Securities:1, 'Managed investments':0, 'Fixed Interest':0, 'Margin lending':0, 'Life Insurance':0, Compliance:3, 'Responsible Manager':2, Taxation:5 },
+  'Mark Smith':      { Skills:2, 'Practice management':3, 'General knowledge':2, 'Aged care':1, 'Social Security':2, 'Estate planning':1, Super:2, Derivatives:0, 'Financial planning':2, 'Retirement income streams':1, 'Self Managed Super Funds':1, Retirement:1, Securities:1, 'Managed investments':0, 'Fixed Interest':0, 'Margin lending':0, 'Life Insurance':0, Compliance:2, 'Responsible Manager':2, Taxation:3 },
+  'Jesse Jackson':   { Skills:2, 'Practice management':2, 'General knowledge':2, 'Aged care':1, 'Social Security':1, 'Estate planning':1, Super:1, Derivatives:0, 'Financial planning':1, 'Retirement income streams':1, 'Self Managed Super Funds':0, Retirement:1, Securities:1, 'Managed investments':0, 'Fixed Interest':0, 'Margin lending':0, 'Life Insurance':0, Compliance:2, 'Responsible Manager':1, Taxation:4 },
+  'Susan Mann':      { Skills:3, 'Practice management':3, 'General knowledge':3, 'Aged care':2, 'Social Security':1, 'Estate planning':2, Super:2, Derivatives:1, 'Financial planning':2, 'Retirement income streams':1, 'Self Managed Super Funds':1, Retirement:1, Securities:0, 'Managed investments':1, 'Fixed Interest':0, 'Margin lending':0, 'Life Insurance':0, Compliance:3, 'Responsible Manager':2, Taxation:5 },
+}
+
 export function createDefaultKAPoints(): MemberPoints {
   const map: MemberPoints = {}
   CPD_KNOWLEDGE_AREAS.forEach(t => t.subs.forEach(s => { map[s] = DEFAULT_KA_POINTS[s] ?? 0 }))
   return map
 }
 
+function sampleForMember(name: string): MemberPoints {
+  return MEMBER_KA_SAMPLES[name] ? { ...MEMBER_KA_SAMPLES[name] } : createDefaultKAPoints()
+}
+
 export function loadAllKAPoints(): AllPoints {
   const members = loadMembers()
   try {
-    const raw = localStorage.getItem('cpd-ka-points')
+    const raw = localStorage.getItem('cpd-ka-points-v2')
     if (raw) {
       const stored: AllPoints = JSON.parse(raw)
-      const defaults = createDefaultKAPoints()
-      members.forEach(m => { if (!stored[m.name]) stored[m.name] = { ...defaults } })
+      members.forEach(m => { if (!stored[m.name]) stored[m.name] = sampleForMember(m.name) })
       return stored
     }
   } catch {}
-  return Object.fromEntries(members.map(m => [m.name, createDefaultKAPoints()]))
+  return Object.fromEntries(members.map(m => [m.name, sampleForMember(m.name)]))
 }
 
 export function saveAllKAPoints(points: AllPoints) {
-  localStorage.setItem('cpd-ka-points', JSON.stringify(points))
+  localStorage.setItem('cpd-ka-points-v2', JSON.stringify(points))
 }
 
 export function kaTopicTotal(points: MemberPoints, topic: typeof CPD_KNOWLEDGE_AREAS[0]) {

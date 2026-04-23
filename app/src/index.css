@@ -16,6 +16,10 @@ html, body, #root {
   overflow-x: clip;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   font-family: var(--font-sans);
   background: #f5f5f5;

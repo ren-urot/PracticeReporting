@@ -7,7 +7,6 @@ import {
   CPD_TOPICS, CPD_KNOWLEDGE_AREAS,
   loadAllKAPoints, kaTopicTotal, kaGrandTotal,
   loadMembers,
-  REQUIRED_QUARTERLY_POINTS, REQUIRED_HALFYEARLY_POINTS, REQUIRED_YEARLY_POINTS,
   loadTopicConfig, DEFAULT_TOPIC_CONFIG,
   type AllPoints, type Member, type AllTopicConfig,
 } from '@/lib/cpdData'
@@ -69,7 +68,7 @@ type Period = 'quarterly' | 'half-yearly' | 'yearly'
 const PERIOD_LABELS: Record<Period, string> = { quarterly: 'Quarterly', 'half-yearly': '6 Months', yearly: 'Yearly' }
 const PERIOD_SUFFIX: Record<Period, string> = { quarterly: 'Per Quarter', 'half-yearly': 'Per 6 Months', yearly: 'Per Year' }
 const PERIOD_DIVISOR: Record<Period, number> = { quarterly: 4, 'half-yearly': 2, yearly: 1 }
-function scaledValue(yearly: number, p: Period) { return Math.ceil(yearly / PERIOD_DIVISOR[p]) }
+function scaledValue(yearly: number, p: Period) { return yearly / PERIOD_DIVISOR[p] }
 
 function splitTitle(title: string): string {
   const words = title.split(' ')
@@ -123,7 +122,7 @@ export default function CpdPlanPage() {
     })
   }
 
-  function updateTopicConfig(area: string, field: keyof TopicConfig, value: number | boolean) {
+  function updateTopicConfig(area: string, field: keyof AllTopicConfig[string], value: number | boolean) {
     setTopicConfig(prev => {
       const next = { ...prev, [area]: { ...(prev[area] ?? DEFAULT_TOPIC_CONFIG[area]), [field]: value } }
       localStorage.setItem('cpd-topic-config-v2', JSON.stringify(next))
@@ -184,10 +183,6 @@ export default function CpdPlanPage() {
   const displayDate = refreshDate
     ? new Date(refreshDate + 'T00:00:00').toLocaleDateString('en-AU', { day: '2-digit', month: 'long', year: 'numeric' })
     : '—'
-
-  const quarterly = REQUIRED_QUARTERLY_POINTS
-  const half      = REQUIRED_HALFYEARLY_POINTS
-  const yearly    = REQUIRED_YEARLY_POINTS
 
   return (
     <div>
@@ -333,8 +328,9 @@ export default function CpdPlanPage() {
                           <input
                             type="number"
                             min="0"
+                            step="0.5"
                             value={cfg[field] === 0 ? '' : scaledValue(cfg[field], period)}
-                            onChange={e => updateTopicConfig(topic.area, field, Math.max(0, (parseInt(e.target.value) || 0) * PERIOD_DIVISOR[period]))}
+                            onChange={e => updateTopicConfig(topic.area, field, Math.max(0, (parseFloat(e.target.value) || 0) * PERIOD_DIVISOR[period]))}
                             placeholder="0"
                             disabled={isTax && !cfg.enabled}
                             className="w-full text-center text-[37px] font-semibold text-[#1182e3] bg-transparent outline-none tracking-[-1px] leading-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
@@ -384,8 +380,9 @@ export default function CpdPlanPage() {
                           <input
                             type="number"
                             min="0"
+                            step="0.5"
                             value={scaledValue(cfg[field], period)}
-                            onChange={e => updateSubTopicConfig(sub, field, Math.max(0, (parseInt(e.target.value) || 0) * PERIOD_DIVISOR[period]))}
+                            onChange={e => updateSubTopicConfig(sub, field, Math.max(0, (parseFloat(e.target.value) || 0) * PERIOD_DIVISOR[period]))}
                             placeholder="0"
                             className="w-full text-center text-[26px] font-semibold text-[#1182e3] bg-transparent outline-none tracking-[-0.5px] leading-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           />
@@ -443,7 +440,7 @@ export default function CpdPlanPage() {
                 </thead>
                 <tbody>
                   {pageItems.map((m, i) => {
-                    const globalIdx = sortedMembers.indexOf(m)
+                    const globalIdx = members.findIndex(x => x.name === m.name)
                     const pts = allPoints[m.name] ?? {}
                     return (
                       <tr key={m.name} className={i < pageItems.length - 1 ? 'border-b border-[#e5e5e5]' : ''}>
