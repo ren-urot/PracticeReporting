@@ -1,11 +1,27 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import Navbar from '@/components/layout/Navbar'
 import PracticeReportingSidebar from '@/components/layout/PracticeReportingSidebar'
 import { Button } from '@/components/ui/button'
 import { loadMembers, loadAllKAPoints, kaTopicTotal, kaGrandTotal, CPD_KNOWLEDGE_AREAS } from '@/lib/cpdData'
 
-type SortKey = 'name'
+type SortKey = 'name' | '_default'
+
+function safeCsvCell(v: string | number): string {
+  const s = String(v).replace(/"/g, '""')
+  if (typeof v !== 'number' && /^[=+\-@\t\r]/.test(s)) return `"\t${s}"`
+  return `"${s}"`
+}
+
+function paginationItems(current: number, total: number): (number | '…')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | '…')[] = [1]
+  if (current > 3) pages.push('…')
+  for (let p = Math.max(2, current - 1); p <= Math.min(total - 1, current + 1); p++) pages.push(p)
+  if (current < total - 2) pages.push('…')
+  pages.push(total)
+  return pages
+}
 
 const ViewDetailsIcon = () => (
   <svg width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
@@ -27,24 +43,36 @@ function SortIcon({ active, dir }: { active: boolean; dir: 'asc' | 'desc' }) {
 
 export default function PracticeReportingPage() {
   const [activePage, setActivePage] = useState(1)
-  const [sortKey] = useState<SortKey>('name')
+  const [sortKey, setSortKey] = useState<SortKey>('_default')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const PAGE_SIZE = 8
 
-  const members  = loadMembers()
-  const allPoints = loadAllKAPoints()
+  const [members, setMembers]     = useState(() => loadMembers())
+  const [allPoints, setAllPoints] = useState(() => loadAllKAPoints())
 
-  function toggleSort(_key: SortKey) {
-    setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+  useEffect(() => {
+    const m = loadMembers()
+    setMembers(m)
+    setAllPoints(loadAllKAPoints())
+  }, [])
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortKey('_default')
+    } else {
+      setSortKey(key)
+      setSortDir('asc')
+    }
     setActivePage(1)
   }
 
   const sorted = useMemo(() => {
+    if (sortKey === '_default') return [...members].reverse()
     return [...members].sort((a, b) => {
       const cmp = a.name.localeCompare(b.name)
       return sortDir === 'asc' ? cmp : -cmp
     })
-  }, [members, sortDir])
+  }, [members, sortKey, sortDir])
 
   const totalPages = Math.ceil(sorted.length / PAGE_SIZE)
   const pageItems  = sorted.slice((activePage - 1) * PAGE_SIZE, activePage * PAGE_SIZE)
@@ -55,7 +83,7 @@ export default function PracticeReportingPage() {
       const pts = allPoints[m.name] ?? {}
       return [m.name, m.email, ...CPD_KNOWLEDGE_AREAS.map(t => kaTopicTotal(pts, t)), kaGrandTotal(pts)]
     })
-    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n')
+    const csv = [headers, ...rows].map(r => r.map(safeCsvCell).join(',')).join('\r\n')
     const a = document.createElement('a')
     a.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv))
     a.setAttribute('download', 'practice-reporting.csv')
@@ -168,11 +196,15 @@ export default function PracticeReportingPage() {
                     </svg>
                     Previous
                   </Button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                    <Button key={p} variant={activePage === p ? 'outline' : 'ghost'} size="pagination" onClick={() => setActivePage(p)}>
-                      {p}
-                    </Button>
-                  ))}
+                  {paginationItems(activePage, totalPages).map((p, i) =>
+                    p === '…' ? (
+                      <span key={`e${i}`} className="px-1 text-[13px] text-[#737373]">…</span>
+                    ) : (
+                      <Button key={p} variant={activePage === p ? 'outline' : 'ghost'} size="pagination" onClick={() => setActivePage(p as number)}>
+                        {p}
+                      </Button>
+                    )
+                  )}
                   <Button variant="outline" size="pagination-btn" onClick={() => setActivePage(p => Math.min(totalPages, p + 1))} disabled={activePage === totalPages}>
                     Next
                     <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">

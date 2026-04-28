@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useState } from 'react'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import Navbar from '@/components/layout/Navbar'
 import PracticeReportingSidebar from '@/components/layout/PracticeReportingSidebar'
 import { Button } from '@/components/ui/button'
@@ -12,19 +12,17 @@ import {
 export default function CpdPlanEditPage() {
   const navigate = useNavigate()
   const { memberIndex } = useParams<{ memberIndex: string }>()
-  const idx    = parseInt(memberIndex ?? '0')
-  const member = loadMembers()[idx]
+  const members = loadMembers()
+  const idx = parseInt(memberIndex ?? '', 10)
+  const member = (!isNaN(idx) && idx >= 0 && idx < members.length) ? members[idx] : undefined
 
   const [points, setPoints] = useState<MemberPoints>(() => {
+    if (!member) return {}
     const all = loadAllKAPoints()
-    return { ...all[member?.name ?? ''] }
+    return { ...all[member.name] }
   })
 
-  useEffect(() => {
-    if (!member) navigate('/cpd-plan')
-  }, [member, navigate])
-
-  if (!member) return null
+  if (!member) return <Navigate to="/cpd-plan" replace />
 
   function setPoint(sub: string, val: string) {
     const n = Math.max(0, parseInt(val) || 0)

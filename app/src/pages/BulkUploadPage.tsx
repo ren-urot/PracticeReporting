@@ -101,7 +101,7 @@ export default function BulkUploadPage() {
           .map(r => ({ name: r.name, email: r.email }))
         saveMembers([...existing, ...newMembers])
         setSendState('sent')
-        setTimeout(() => { setSendState('idle'); setRecipients([]) }, 3000)
+        setTimeout(() => navigate('/practice-reporting'), 1500)
       } catch {
         setSendState('error')
         setTimeout(() => setSendState('idle'), 3000)

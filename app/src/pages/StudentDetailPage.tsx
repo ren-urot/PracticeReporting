@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import Navbar from '@/components/layout/Navbar'
 import StudentDetailSidebar from '@/components/layout/StudentDetailSidebar'
 import { Button } from '@/components/ui/button'
@@ -228,11 +228,19 @@ const GAUGE_LABEL_MAP: Record<string, string> = {
   'Tax Advice': 'Tax (Financial) Advice',
 }
 
+function safeCsvCell(v: string | number): string {
+  const s = String(v).replace(/"/g, '""')
+  if (typeof v !== 'number' && /^[=+\-@\t\r]/.test(s)) return `"\t${s}"`
+  return `"${s}"`
+}
+
 export default function StudentDetailPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const members = loadMembers()
-  const member = members[parseInt(id ?? '0')] ?? members[0]
+  const idx = parseInt(id ?? '', 10)
+  if (isNaN(idx) || idx < 0 || idx >= members.length) return <Navigate to="/practice-reporting" replace />
+  const member = members[idx]
 
   const pts = loadAllKAPoints()[member.name] ?? {}
   const topicConfig = loadTopicConfig()
@@ -293,7 +301,7 @@ export default function StudentDetailPage() {
       c.title, c.description, String(c.points),
       c.categories.filter(cat => cat.active).map(cat => cat.label).join('; '),
     ]))
-    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n')
+    const csv = rows.map(r => r.map(safeCsvCell).join(',')).join('\r\n')
     const a = document.createElement('a')
     a.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv))
     a.setAttribute('download', `${member.name.toLowerCase().replace(/\s+/g, '-')}-report.csv`)

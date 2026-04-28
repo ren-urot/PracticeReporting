@@ -46,16 +46,33 @@ export const CPD_TOPICS = [
 
 export type Member = { name: string; email: string }
 
+export function safeSetItem(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value)
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+      console.error(`localStorage quota exceeded saving "${key}"`)
+    } else {
+      throw e
+    }
+  }
+}
+
 export function loadMembers(): Member[] {
   try {
     const raw = localStorage.getItem('cpd-members')
-    if (raw) return JSON.parse(raw)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed) && parsed.every(m => typeof m.name === 'string' && typeof m.email === 'string')) {
+        return parsed
+      }
+    }
   } catch {}
   return CPD_MEMBERS.map(m => ({ name: m.name, email: m.email }))
 }
 
 export function saveMembers(members: Member[]) {
-  localStorage.setItem('cpd-members', JSON.stringify(members))
+  safeSetItem('cpd-members', JSON.stringify(members))
 }
 
 export const REQUIRED_QUARTERLY_POINTS   = 4.5
@@ -102,7 +119,7 @@ export function loadAllPoints(): AllPoints {
       const stored: AllPoints = JSON.parse(raw)
       const defaults = createDefaultPoints()
       members.forEach(m => {
-        if (!stored[m.name] || Object.values(stored[m.name]).every(v => v === 0)) {
+        if (!stored[m.name]) {
           stored[m.name] = { ...defaults }
         }
       })
@@ -113,7 +130,7 @@ export function loadAllPoints(): AllPoints {
 }
 
 export function saveAllPoints(points: AllPoints) {
-  localStorage.setItem('cpd-points', JSON.stringify(points))
+  safeSetItem('cpd-points', JSON.stringify(points))
 }
 
 export function topicTotal(points: MemberPoints, topic: typeof CPD_TOPICS[0]) {
@@ -182,7 +199,7 @@ export function loadAllKAPoints(): AllPoints {
 }
 
 export function saveAllKAPoints(points: AllPoints) {
-  localStorage.setItem('cpd-ka-points-v2', JSON.stringify(points))
+  safeSetItem('cpd-ka-points-v2', JSON.stringify(points))
 }
 
 export function kaTopicTotal(points: MemberPoints, topic: typeof CPD_KNOWLEDGE_AREAS[0]) {
